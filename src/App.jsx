@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Spline from '@splinetool/react-spline'
+import ARViewer from './components/ARViewer'
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
 
@@ -30,6 +31,7 @@ function Hero() {
 function Rooms() {
   const [rooms, setRooms] = useState([])
   const [loading, setLoading] = useState(true)
+  const [arModel, setArModel] = useState(null)
 
   useEffect(() => {
     const load = async () => {
@@ -39,7 +41,6 @@ function Rooms() {
         const data = await res.json()
         setRooms(data)
       } catch (e) {
-        // attempt seed then reload
         try {
           await fetch(`${API_BASE}/seed/rooms`, { method: 'POST' })
           const res2 = await fetch(`${API_BASE}/rooms`)
@@ -75,8 +76,11 @@ function Rooms() {
                     <p className="text-slate-300 text-sm">{r.view} • up to {r.capacity} guests</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-blue-300">${'{'}r.price_per_night{'}'}/night</div>
-                    <button className="mt-2 px-4 py-2 rounded-lg bg-blue-500/80 hover:bg-blue-400 text-white">Preview 360°</button>
+                    <div className="text-blue-300">${r.price_per_night}/night</div>
+                    <div className="mt-2 flex gap-2">
+                      <button className="px-4 py-2 rounded-lg bg-blue-500/80 hover:bg-blue-400 text-white">Preview 360°</button>
+                      <button onClick={() => setArModel('https://modelviewer.dev/shared-assets/models/Astronaut.glb')} className="px-4 py-2 rounded-lg bg-emerald-500/80 hover:bg-emerald-400 text-white">Place Room in AR</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -84,12 +88,14 @@ function Rooms() {
           )}
         </div>
       </div>
+      {arModel && <ARViewer modelUrl={arModel} onClose={() => setArModel(null)} />}
     </section>
   )
 }
 
 function MenuAR() {
   const [dishes, setDishes] = useState([])
+  const [arModel, setArModel] = useState(null)
 
   useEffect(() => {
     const load = async () => {
@@ -108,6 +114,12 @@ function MenuAR() {
     load()
   }, [])
 
+  const pickModel = (d) => {
+    // If a model URL exists in dish.models use it; else fallback to demo model
+    const URL = (d.models && d.models[0]) || 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'
+    setArModel(URL)
+  }
+
   return (
     <section id="menu" className="py-20 px-6 bg-gradient-to-b from-slate-900 to-slate-950">
       <div className="max-w-6xl mx-auto">
@@ -120,13 +132,14 @@ function MenuAR() {
               <h3 className="mt-4 text-white text-lg">{d.name}</h3>
               <p className="text-slate-300 text-sm">{d.description}</p>
               <div className="mt-3 flex items-center justify-between">
-                <span className="text-pink-300">${'{'}d.price{'}'}</span>
-                <button className="px-3 py-2 rounded-lg bg-pink-500/80 hover:bg-pink-500 text-white">Place in AR</button>
+                <span className="text-pink-300">${d.price}</span>
+                <button onClick={() => pickModel(d)} className="px-3 py-2 rounded-lg bg-pink-500/80 hover:bg-pink-500 text-white">Place in AR</button>
               </div>
             </div>
           ))}
         </div>
       </div>
+      {arModel && <ARViewer modelUrl={arModel} onClose={() => setArModel(null)} />}
     </section>
   )
 }
@@ -210,7 +223,7 @@ function Quote() {
           {quote ? (
             <div className="text-slate-200 grid md:grid-cols-2 gap-4">
               <div>
-                <div>Nightly rate: <span className="text-white">${'{'}quote.nightly_rate{'}'}</span></div>
+                <div>Nightly rate: <span className="text-white">${quote.nightly_rate}</span></div>
                 <div>Nights: <span className="text-white">{quote.nights}</span></div>
                 {quote.suggestion && <div className="text-emerald-300 mt-2">{quote.suggestion}</div>}
               </div>
@@ -218,10 +231,10 @@ function Quote() {
                 <div className="font-medium text-white">Add-ons</div>
                 <ul className="text-sm mt-2 list-disc list-inside">
                   {quote.addons?.map((a) => (
-                    <li key={a.name}>{a.name}: ${'{'}a.price{'}'}</li>
+                    <li key={a.name}>{a.name}: ${a.price}</li>
                   ))}
                 </ul>
-                <div className="mt-3 text-lg">Total: <span className="text-white">${'{'}quote.total{'}'}</span></div>
+                <div className="mt-3 text-lg">Total: <span className="text-white">${quote.total}</span></div>
               </div>
             </div>
           ) : (
